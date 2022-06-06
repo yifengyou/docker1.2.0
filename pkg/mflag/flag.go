@@ -949,6 +949,7 @@ func (f *FlagSet) Parsed() bool {
 // after all flags are defined and before flags are accessed by the program.
 func Parse() {
 	// Ignore errors; CommandLine is set for ExitOnError.
+	// 如果没有参数呢？os.Args[1:]会为[]，不会爆炸
 	CommandLine.Parse(os.Args[1:])
 }
 

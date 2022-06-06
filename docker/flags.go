@@ -9,11 +9,13 @@ import (
 )
 
 var (
+	// 尝试从环境变量DOCKER_CERT_PATH获取证书路径
 	dockerCertPath = os.Getenv("DOCKER_CERT_PATH")
 )
 
 func init() {
 	if dockerCertPath == "" {
+		// 如果环境变量没有定义证书路径，则从用户家目录下的.docker目录下获取
 		dockerCertPath = filepath.Join(os.Getenv("HOME"), ".docker")
 	}
 }
@@ -28,12 +30,14 @@ var (
 	flTlsVerify   = flag.Bool([]string{"-tlsverify"}, false, "Use TLS and verify the remote (daemon: verify client, client: verify daemon)")
 
 	// these are initialized in init() below since their default values depend on dockerCertPath which isn't fully initialized until init() runs
+	// 先实例化，但是没有赋有效值，默认是类型零值，直到init()中赋值
 	flCa    *string
 	flCert  *string
 	flKey   *string
 	flHosts []string
 )
 
+// 同一个go程序可以包含多个init函数，但是执行顺序没法保证
 func init() {
 	flCa = flag.String([]string{"-tlscacert"}, filepath.Join(dockerCertPath, defaultCaFile), "Trust only remotes providing a certificate signed by the CA given here")
 	flCert = flag.String([]string{"-tlscert"}, filepath.Join(dockerCertPath, defaultCertFile), "Path to TLS certificate file")

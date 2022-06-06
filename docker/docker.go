@@ -18,11 +18,13 @@ import (
 )
 
 const (
+	// 全局常量，开头小写，限制在当前包内。此处三个常量均只用在当前包的flags文件中
 	defaultCaFile   = "ca.pem"
 	defaultKeyFile  = "key.pem"
 	defaultCertFile = "cert.pem"
 )
 
+// docker二进制入口函数，在所有import包的init函数执行完成后才进入main逻辑
 func main() {
 	// reexec.Init() 函数的定义位于 ./docker/reexec/reexec.go，可以发现由于在docker运行之前没有任何Initializer注册，故该代码段执行的返回值为假。
 	// reexec存在的作用是:协调 exec driver 与容器创建时 docker init这两者的关系。
@@ -31,6 +33,7 @@ func main() {
 	}
 
 	// 解析参数： flag "github.com/docker/flag.go"
+	// mflag不同于golang内置库flag，代码里面没有明显应用内置库flag，应该是自己实现的
 	flag.Parse()
 	// FIXME: validate daemon flags here
 
@@ -81,7 +84,7 @@ func main() {
 	// Docker 在这里创建了两个变量:一个为类型是*c1ient.DockerCli 的对象cli ，另一个为类型是 tls.Config 的对象 tlsConfig 。
 	var (
 		cli       *client.DockerCli
-		tlsConfig tls.Config  // TLS协议
+		tlsConfig tls.Config // TLS协议
 	)
 
 	tlsConfig.InsecureSkipVerify = true
