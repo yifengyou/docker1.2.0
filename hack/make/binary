@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
+# 目标目录
 DEST=$1
 
+# souce会附带环境变量，例如$DEST
 go build \
 	-o "$DEST/docker-$VERSION" \
 	"${BUILDFLAGS[@]}" \
@@ -14,4 +16,20 @@ go build \
 echo "Created binary: $DEST/docker-$VERSION"
 ln -sf "docker-$VERSION" "$DEST/docker"
 
+# hash_files在make.sh中定义，其实就是检测md5sum命令是否存在，存在则计算文件md5
 hash_files "$DEST/docker-$VERSION"
+# 生成的docker为静态连接，不包含任何链接库
+ldd "$DEST/docker-$VERSION"
+
+#  go build -o /go/src/github.com/docker/docker/bundles/1.2.0/binary/docker-1.2.0 -a -tags 'netgo static_build apparmor selinux daemon' -ldflags '
+#
+#	-w
+#	-X github.com/docker/docker/dockerversion.GITCOMMIT "0986095-dirty"
+#	-X github.com/docker/docker/dockerversion.VERSION "1.2.0"
+#
+#
+#	-linkmode external
+#	-X github.com/docker/docker/dockerversion.IAMSTATIC true
+#	-extldflags "-static -lpthread -Wl,--unresolved-symbols=ignore-in-object-files"
+#
+#	' ./docker
