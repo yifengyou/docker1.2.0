@@ -22,6 +22,7 @@ type Installer interface {
 
 type Handler func(*Job) Status
 
+// eng通过该全局变量去注册句柄
 var globalHandlers map[string]Handler
 
 func init() {
@@ -45,7 +46,7 @@ func unregister(name string) {
 // It acts as a store for *containers*, and allows manipulation of these
 // containers by executing *jobs*.
 type Engine struct {
-	handlers   map[string]Handler
+	handlers   map[string]Handler // 关键参数，根据string调用具体的job操作函数Handler句柄
 	catchall   Handler
 	hack       Hack // data for temporary hackery (see hack.go)
 	id         string
@@ -60,6 +61,10 @@ type Engine struct {
 }
 
 func (eng *Engine) Register(name string, handler Handler) error {
+	// handlers   map[string]Handler // 关键参数，根据string调用具体的job操作函数Handler句柄
+	// 注册操作句柄
+	// 例如 images/info/events/logs/container_inspect/history/delete/image_inspect/version/serveapi
+	// init_networkdriver/acceptconnections/ /.dockerinit 等
 	_, exists := eng.handlers[name]
 	if exists {
 		return fmt.Errorf("Can't overwrite handler for command %s", name)
@@ -82,10 +87,13 @@ func New() *Engine {
 		Stdin:    os.Stdin,
 		Logging:  true,
 	}
+	// 注册commands字符串对应的操作句柄 map[string]Handler
+	// 通过job来控制daemon打印所有命令
 	eng.Register("commands", func(job *Job) Status {
 		for _, name := range eng.commands() {
 			job.Printf("%s\n", name)
 		}
+		// StatusOK       Status = 0
 		return StatusOK
 	})
 	// Copy existing global handlers

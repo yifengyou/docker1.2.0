@@ -76,7 +76,9 @@ func (job *Job) Run() error {
 		job.Errorf("%s: command not found", job.Name)
 		job.status = 127
 	} else {
+		// 调用句柄执行job，持续占用cpu执行
 		job.status = job.handler(job)
+		// 结束时间
 		job.end = time.Now()
 	}
 	// Wait for all background tasks to complete

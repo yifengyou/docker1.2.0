@@ -14,18 +14,24 @@ import (
 )
 
 func Register(eng *engine.Engine) error {
+	// eng.Register("init_networkdriver", bridge.InitDriver)
 	if err := daemon(eng); err != nil {
 		return err
 	}
+	// eng.Register("serveapi", apiserver.ServeApi)
+	// eng.Register("acceptconnections", apiserver.AcceptConnections)
 	if err := remote(eng); err != nil {
 		return err
 	}
+	// Install installs events public api in docker engine
 	if err := events.New().Install(eng); err != nil {
 		return err
 	}
 	if err := eng.Register("version", dockerVersion); err != nil {
 		return err
 	}
+	// eng.Register("auth", s.Auth)
+	// eng.Register("search", s.Search)
 	return registry.NewService().Install(eng)
 }
 

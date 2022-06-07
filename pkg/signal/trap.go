@@ -23,6 +23,7 @@ func Trap(cleanup func()) {
 	if os.Getenv("DEBUG") == "" {
 		signals = append(signals, syscall.SIGQUIT)
 	}
+	// 只接收特定信号，其他忽略
 	gosignal.Notify(c, signals...)
 	go func() {
 		interruptCount := uint32(0)

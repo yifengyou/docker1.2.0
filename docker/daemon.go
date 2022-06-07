@@ -39,26 +39,30 @@ func mainDaemon() {
 	}
 	// 初始化dameon中的关键模块engine
 	eng := engine.New()
-	// 处理信号
+	// 处理信号，封装了SIGINT\SIGTERM\SIGQUIT，优雅退出
 	signal.Trap(eng.Shutdown)
-	// Load builtins
+	// Load builtins 注册内置操作句柄到引擎中，与容器交互无关
 	if err := builtins.Register(eng); err != nil {
 		log.Fatal(err)
 	}
 
+	// 运行docker server，该server仅与docker client交互
 	// load the daemon in the background so we can immediately start
 	// the http api so that connections don't fail while the daemon
 	// is booting
 	go func() {
-		d, err := daemon.NewDaemon(daemonCfg, eng)
+		// 实例化daemon，实际上 daemon = server + engine
+		d, err := daemon.NewDaemon(daemonCfg, eng) // 重点，内容很深
 		if err != nil {
 			log.Fatal(err)
 		}
+		// 注册操作容器、镜像的job句柄
 		if err := d.Install(eng); err != nil {
 			log.Fatal(err)
 		}
 		// after the daemon is done setting up we can tell the api to start
 		// accepting connections
+		// 通知systemd，服务启动完毕，可以接收请求
 		if err := eng.Job("acceptconnections").Run(); err != nil {
 			log.Fatal(err)
 		}
