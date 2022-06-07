@@ -18,6 +18,9 @@ func ListVar(values *[]string, names []string, usage string) {
 }
 
 func HostListVar(values *[]string, names []string, usage string) {
+	// 校验主机参数是否合法，其中api.ValidateHost为校验函数
+	// func newListOptsRef(values *[]string, validator ValidatorFctType) *ListOpts
+	// 此处values对应的校验函数 是 api.ValidateHost，但是什么时候调用 api.ValidateHost呢？
 	flag.Var(newListOptsRef(values, api.ValidateHost), names, usage)
 }
 

@@ -37,8 +37,9 @@ func main() {
 	flag.Parse()
 	// FIXME: validate daemon flags here
 
-	// flVersion为真，输出docker版本信息
+	// flVersion为真，输出docker版本信息，并立即结束退出
 	if *flVersion {
+		// 显示版本信息并退出
 		showVersion()
 		return
 	}
@@ -51,7 +52,7 @@ func main() {
 	if len(flHosts) == 0 {
 		// 如果长度是0,说明用户没有传入地址
 
-		// Docker 通过 os 包获取名为 DOCKER_HOST 环环境变量
+		// 从环境变量只能中提取DOCKER_HOST参数赋值
 		defaultHost := os.Getenv("DOCKER_HOST")
 
 		if defaultHost == "" || *flDaemon {
@@ -59,6 +60,7 @@ func main() {
 
 			// 若 defaultHost 为空或者 flDaemon 为真，说明目前还没有一个定义的 host对象，则将其默认设置为 unix socket ，值为 api.DEFAULTUNIXSOCKET ，
 			// 该常量位于docker/api/common.go ，值为 "/var/run/docker.sock" ，故 defaultHost 为 "unix:///var/runldocker.sock" 。
+			// DEFAULTUNIXSOCKET = "/var/run/docker.sock"
 			defaultHost = fmt.Sprintf("unix://%s", api.DEFAULTUNIXSOCKET)
 		}
 		// 验证该 defaultHost 的合法性之后，将 defaultHost 的值追加至 flHost 的末尾， 继续往下执行。
@@ -71,14 +73,21 @@ func main() {
 	// 若 flDaemon 参数为真，则说明用户的需求是启动 Docker Daemon。
 	if *flDaemon {
 		mainDaemon()
+		// 此处返回，说明后续都是client执行逻辑
 		return
 	}
 	// 若 flHosts 的长度大于 1 ，则说明需要新创建的 Docker Client 访问不止 1 个 Docker Daemon 地址，显然逻辑上行不通，故抛出错误日志，
 	// 提醒用户只能指定一个 Docker Daemon 地址。
+	// 注意哟，dameon是可以支持多个flHosts的
+	// dockerd -H unix:///var/run/docker.sock -H tcp://192.168.59.106 -H tcp://10.10.10.2
 	if len(flHosts) > 1 {
+		// 致命错误，爆炸退出
 		log.Fatal("Please specify only one -H")
 	}
 	// 获取通过：//分割的两部分
+	// "unix:///var/runldocker.sock" -> "/var/runldocker.sock"
+	// "tcp://192.168.59.103:2375" -> "192.168.59.103:2375"
+	// "fd://3" -> "3"
 	protoAddrParts := strings.SplitN(flHosts[0], "://", 2)
 
 	// Docker 在这里创建了两个变量:一个为类型是*c1ient.DockerCli 的对象cli ，另一个为类型是 tls.Config 的对象 tlsConfig 。
@@ -119,16 +128,20 @@ func main() {
 		}
 	}
 
-	// 创建Docker Client实例。
+	// 创建Docker Client实例句柄
 	if *flTls || *flTlsVerify {
 		// 实现在./docker/api/client/cli.go
 		// 如果flTls或者flTlsVerify为真，那么需要使用TLS保证传输的安全性。
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], &tlsConfig)
 	} else {
+		// 实例化 type DockerCli struct 对象
 		cli = client.NewDockerCli(os.Stdin, os.Stdout, os.Stderr, protoAddrParts[0], protoAddrParts[1], nil)
 	}
 
-	// 执行相应的命令
+	// 使用 Docker Client实例句柄 执行相应的命令
+	// func Args() []string { return CommandLine.args }
+	// Args很简单，就是返回字符串列表，因此在参数解析阶段会将合法参数放置才该列表中
+	log.Printf("flag.Args:%#v\n", flag.Args())
 	if err := cli.Cmd(flag.Args()...); err != nil {
 		if sterr, ok := err.(*utils.StatusError); ok {
 			if sterr.Status != "" {
@@ -143,3 +156,17 @@ func main() {
 func showVersion() {
 	fmt.Printf("Docker version %s, build %s\n", dockerversion.VERSION, dockerversion.GITCOMMIT)
 }
+
+// dockerversion.VERSION, dockerversion.GITCOMMIT 是通过编译参数赋值
+//  go build -o /go/src/github.com/docker/docker/bundles/1.2.0/binary/docker-1.2.0 -a -tags 'netgo static_build apparmor selinux daemon' -ldflags '
+//
+//	-w
+//	-X github.com/docker/docker/dockerversion.GITCOMMIT "0986095-dirty"
+//	-X github.com/docker/docker/dockerversion.VERSION "1.2.0"
+//
+//
+//	-linkmode external
+//	-X github.com/docker/docker/dockerversion.IAMSTATIC true
+//	-extldflags "-static -lpthread -Wl,--unresolved-symbols=ignore-in-object-files"
+//
+//	' ./docker
