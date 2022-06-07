@@ -1228,7 +1228,8 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		registryAuthHeader := []string{
 			base64.URLEncoding.EncodeToString(buf),
 		}
-		// 发送请求
+		// 发送请求，交付daemon执行
+		// daemon执行仍然存在超时等诸多情况(Client.Timeout exceeded while awaiting headers)
 		return cli.stream("POST", "/images/create?"+v.Encode(), nil, cli.out, map[string][]string{
 			"X-Registry-Auth": registryAuthHeader,
 		})

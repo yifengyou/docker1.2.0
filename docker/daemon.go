@@ -1,5 +1,9 @@
 // +build daemon
 
+// golang tag特性
+// go bulid -tag 功能来编译不同版本
+// go build -tags daemon -o docker
+
 package main
 
 import (
@@ -18,19 +22,24 @@ import (
 const CanDaemon = true
 
 var (
+	// 先于 init 函数
 	daemonCfg = &daemon.Config{}
 )
 
 func init() {
+	// 在mainDaemon之前执行，daemon特供参数解析
 	daemonCfg.InstallFlags()
 }
 
 func mainDaemon() {
+	// 除了已经解析的，还剩下的无法解析的参数，还有至少一个，则打印帮助信息并退出
 	if flag.NArg() != 0 {
 		flag.Usage()
 		return
 	}
+	// 初始化dameon中的关键模块engine
 	eng := engine.New()
+	// 处理信号
 	signal.Trap(eng.Shutdown)
 	// Load builtins
 	if err := builtins.Register(eng); err != nil {
