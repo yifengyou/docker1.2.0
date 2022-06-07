@@ -43,6 +43,8 @@ func (cli *DockerCli) getMethod(name string) (func(...string) error, bool) {
 		return nil, false
 	}
 	methodName := "Cmd" + strings.ToUpper(name[:1]) + strings.ToLower(name[1:])
+	// 获取DockerCli实例对象的方法，固定开头Cmd，第一个单次大小，之后小写
+	// docker ps 等价于 docker Ps
 	method := reflect.ValueOf(cli).MethodByName(methodName)
 	if !method.IsValid() {
 		return nil, false
@@ -60,6 +62,7 @@ func (cli *DockerCli) Cmd(args ...string) error {
 	// 如果没有指定cmd则直接显示帮助信息
 	if len(args) > 0 {
 		// 有请求信息
+		// func(...string) error, bool
 		method, exists := cli.getMethod(args[0])
 		if !exists {
 			// 请求信息的方法不存在则输出help信息

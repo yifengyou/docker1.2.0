@@ -76,6 +76,8 @@ func decodeAuth(authStr string) (string, string, error) {
 // FIXME: use the internal golang config parser
 func LoadConfig(rootPath string) (*ConfigFile, error) {
 	configFile := ConfigFile{Configs: make(map[string]AuthConfig), rootPath: rootPath}
+	// const CONFIGFILE = ".dockercfg"
+	// docker1.2.0配置文件在 $HOME/.dockercfg
 	confFile := path.Join(rootPath, CONFIGFILE)
 	if _, err := os.Stat(confFile); err != nil {
 		return &configFile, nil //missing file is not an error
@@ -84,7 +86,7 @@ func LoadConfig(rootPath string) (*ConfigFile, error) {
 	if err != nil {
 		return &configFile, err
 	}
-
+	// 要求配置文件为规范json格式，否则会解析失败
 	if err := json.Unmarshal(b, &configFile.Configs); err != nil {
 		arr := strings.Split(string(b), "\n")
 		if len(arr) < 2 {

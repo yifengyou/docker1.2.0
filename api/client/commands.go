@@ -1194,6 +1194,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 	}
 	var (
 		v      = url.Values{}
+		// 对端镜像地址
 		remote = cmd.Arg(0)
 	)
 
@@ -1205,16 +1206,20 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 
 	remote, _ = parsers.ParseRepositoryTag(remote)
 	// Resolve the Repository name from fqn to hostname + name
+	// 获取目的主机名称，是否要登录？
 	hostname, _, err := registry.ResolveRepositoryName(remote)
 	if err != nil {
 		return err
 	}
 
+	// 从配置文件中加载登陆账号密码
+	// 忽略解析失败问题
 	cli.LoadConfigFile()
 
 	// Resolve the Auth config relevant for this server
 	authConfig := cli.configFile.ResolveAuthConfig(hostname)
 
+	// 局部函数
 	pull := func(authConfig registry.AuthConfig) error {
 		buf, err := json.Marshal(authConfig)
 		if err != nil {
@@ -1223,7 +1228,7 @@ func (cli *DockerCli) CmdPull(args ...string) error {
 		registryAuthHeader := []string{
 			base64.URLEncoding.EncodeToString(buf),
 		}
-
+		// 发送请求
 		return cli.stream("POST", "/images/create?"+v.Encode(), nil, cli.out, map[string][]string{
 			"X-Registry-Auth": registryAuthHeader,
 		})

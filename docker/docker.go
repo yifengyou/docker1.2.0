@@ -142,6 +142,8 @@ func main() {
 	// func Args() []string { return CommandLine.args }
 	// Args很简单，就是返回字符串列表，因此在参数解析阶段会将合法参数放置才该列表中
 	log.Printf("flag.Args:%#v\n", flag.Args())
+	// 执行子命令，如果有错误，在这里捕获，如果没有错误，也在这里结束
+	// 这里是个典型的路由思想
 	if err := cli.Cmd(flag.Args()...); err != nil {
 		if sterr, ok := err.(*utils.StatusError); ok {
 			if sterr.Status != "" {

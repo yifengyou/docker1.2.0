@@ -119,7 +119,7 @@ func (cli *DockerCli) streamHelper(method, path string, setRawTerminal bool, in 
 	if (method == "POST" || method == "PUT") && in == nil {
 		in = bytes.NewReader([]byte{})
 	}
-
+	// 构建request请求
 	req, err := http.NewRequest(method, fmt.Sprintf("http://v%s%s", api.APIVERSION, path), in)
 	if err != nil {
 		return err
@@ -136,6 +136,8 @@ func (cli *DockerCli) streamHelper(method, path string, setRawTerminal bool, in 
 			req.Header[k] = v
 		}
 	}
+	log.Debugf("Send req to daemon: %#v\n", req.URL)
+	// 发送封装的请求到docker daemon端
 	resp, err := cli.HTTPClient().Do(req)
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
