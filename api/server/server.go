@@ -35,6 +35,8 @@ import (
 )
 
 var (
+	// 两个job之间打通，一个是acceptconnections，另一个是serverapi
+	// serverapi 初始化完成后，才能acceptconnections
 	activationLock chan struct{}
 )
 
@@ -1367,6 +1369,11 @@ func ServeApi(job *engine.Job) engine.Status {
 	return engine.StatusOK
 }
 
+// activationLock是一个用来同步”serveapi”和”acceptconnections”这两个 job 执行的 channel。
+// 在 serveapi 运行时 ServeFd 和 ListenAndServe 的实现中，由于 activationLock 这个 channel 中没有内容而阻塞，
+// 而当运行”acceptionconnections”这个 job 时，会首先通知 init 进程 Docker Daemon 已经启动完毕，并关闭 activationLock，
+// 同时也开启了 serveapi 的继续执行。正是由于 activationLock 的存在，
+// 保证了”acceptconnections”这个job 的运行起到通知”serveapi”开启正式服务于 API 的效果
 func AcceptConnections(job *engine.Job) engine.Status {
 	// Tell the init daemon we are accepting requests
 	go systemd.SdNotify("READY=1")

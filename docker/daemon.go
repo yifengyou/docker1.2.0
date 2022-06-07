@@ -68,6 +68,7 @@ func mainDaemon() {
 		}
 	}()
 	// TODO actually have a resolved graphdriver to show?
+	// 2022/06/07 07:21:40 docker daemon: 1.2.0 908feb4-dirty; execdriver: native; graphdriver:
 	log.Printf("docker daemon: %s %s; execdriver: %s; graphdriver: %s",
 		dockerversion.VERSION,
 		dockerversion.GITCOMMIT,
@@ -75,7 +76,9 @@ func mainDaemon() {
 		daemonCfg.GraphDriver,
 	)
 
-	// Serve api
+	// Serve api 初始化serverapi job，还未运行
+	// func ServeApi(job *engine.Job) engine.Status
+	// serveapi 开始服务需要在 acceptconnections job 关闭chan开始
 	job := eng.Job("serveapi", flHosts...)
 	job.SetenvBool("Logging", true)
 	job.SetenvBool("EnableCors", *flEnableCors)
@@ -88,6 +91,7 @@ func mainDaemon() {
 	job.Setenv("TlsCert", *flCert)
 	job.Setenv("TlsKey", *flKey)
 	job.SetenvBool("BufferRequests", true)
+	// 运行job
 	if err := job.Run(); err != nil {
 		log.Fatal(err)
 	}
