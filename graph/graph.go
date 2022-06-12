@@ -40,7 +40,9 @@ func NewGraph(root string, driver graphdriver.Driver) (*Graph, error) {
 	if err := os.MkdirAll(root, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
-
+	// 实例化镜像仓库，镜像目录+镜像驱动
+	// 没有专用数据库，都是在文件系统上构建仓库的
+	// 因此用户可以直接修改内容
 	graph := &Graph{
 		Root:    abspath,
 		idIndex: truncindex.NewTruncIndex([]string{}),

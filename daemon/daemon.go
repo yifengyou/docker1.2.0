@@ -757,6 +757,7 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 	graphdriver.DefaultDriver = config.GraphDriver
 
 	// Load storage driver config.GraphOptions默认为空
+	// 四种模型 aufs\btrfs\devicemapper\vfs
 	driver, err := graphdriver.New(config.Root, config.GraphOptions)
 	if err != nil {
 		return nil, err
@@ -793,6 +794,7 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 
 	// We don't want to use a complex driver like aufs or devmapper
 	// for volumes, just a plain filesystem
+	// 使用最基本的vfs
 	volumesDriver, err := graphdriver.GetDriver("vfs", config.Root, config.GraphOptions)
 	if err != nil {
 		return nil, err
@@ -803,6 +805,7 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		return nil, err
 	}
 	log.Debugf("Creating repository list")
+	// TagStore用于管理存储镜像的仓库列表
 	repositories, err := graph.NewTagStore(path.Join(config.Root, "repositories-"+driver.String()), g)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't create Tag store: %s", err)

@@ -36,6 +36,9 @@ func pathExists(pth string) bool {
 // For the migration we try to move the folder containing the layer files, if that
 // fails because the data is currently mounted we will fallback to creating a
 // symlink.
+// migrate repositories的功能是：在Docker Daemon的root工作目录下创建repositories-aufs的文件，存储所有与images相关的基本信息。
+// migrate images的主要功能是：将原有的image镜像都迁移至aufs driver能识别并使用的类型，包括aufs所规定的layers，diff与mnt目录内容。
+// migrate container的主要功能是：将container内部的环境使用aufs driver来进行配置，包括，创建container内部的初始层（init layer），以及创建原先container内部的其他layers。
 func (a *Driver) Migrate(pth string, setupInit func(p string) error) error {
 	if pathExists(path.Join(pth, "graph")) {
 		if err := a.migrateRepositories(pth); err != nil {

@@ -104,6 +104,11 @@ func New(root string, options []string) (driver Driver, err error) {
 	}
 
 	// Check all registered drivers if no priority driver is found
+	// 多态，每种镜像驱动都有实现接口，包括常规初始化方法
+	// 具体在daemon/graphdriver/aufs/aufs.go
+	// 具体在daemon/graphdriver/btrfs/btrfs.go
+	// 具体在daemon/graphdriver/devicemapper/devicemapper.go
+	// 具体在daemon/graphdriver/vfs/driver.go
 	for _, initFunc := range drivers {
 		if driver, err = initFunc(root, options); err != nil {
 			if err == ErrNotSupported || err == ErrPrerequisites || err == ErrIncompatibleFS {
