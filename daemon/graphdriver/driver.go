@@ -86,6 +86,12 @@ func New(root string, options []string) (driver Driver, err error) {
 	}
 
 	// Check for priority drivers first
+	// 	priority = []string{
+	//		"aufs",
+	//		"btrfs",
+	//		"devicemapper",
+	//		"vfs",
+	//	}
 	for _, name := range priority {
 		driver, err = GetDriver(name, root, options)
 		if err != nil {

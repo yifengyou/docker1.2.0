@@ -38,6 +38,8 @@ func mainDaemon() {
 		return
 	}
 	// 初始化dameon中的关键模块engine
+	// docker daemon = eng + server
+	// engine 先实例化
 	eng := engine.New()
 	// 处理信号，封装了SIGINT\SIGTERM\SIGQUIT，优雅退出
 	signal.Trap(eng.Shutdown)

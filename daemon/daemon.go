@@ -672,11 +672,14 @@ func NewDaemon(config *Config, eng *engine.Engine) (*Daemon, error) {
 
 func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error) {
 	// Apply configuration defaults
+	// 配置MTU
 	if config.Mtu == 0 {
 		// FIXME: GetDefaultNetwork Mtu doesn't need to be public anymore
+		// defaultNetworkMtu = 1500
 		config.Mtu = GetDefaultNetworkMtu()
 	}
 	// Check for mutually incompatible config options
+	// 检测网桥以及网桥ip，两者不能同时存在
 	if config.BridgeIface != "" && config.BridgeIP != "" {
 		return nil, fmt.Errorf("You specified -b & --bip, mutually exclusive options. Please specify only one.")
 	}
@@ -684,14 +687,19 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		return nil, fmt.Errorf("You specified --iptables=false with --icc=false. ICC uses iptables to function. Please set --icc or --iptables to true.")
 	}
 	// FIXME: DisableNetworkBidge doesn't need to be public anymore
+	// DisableNetworkBridge = "none"
+	// 如果没有网桥，则禁用网络
 	config.DisableNetwork = config.BridgeIface == DisableNetworkBridge
 
 	// Claim the pidfile first, to avoid any and all unexpected race conditions.
 	// Some of the init doesn't need a pidfile lock - but let's not try to be smart.
+	// 默认pidfile路径在/var/run/docker.pid
 	if config.Pidfile != "" {
+		// 如果配置中指定了pidfil，创建之，避免竞争
 		if err := utils.CreatePidFile(config.Pidfile); err != nil {
 			return nil, err
 		}
+		// 为引擎关闭方法注册一个移除pidfile的方法
 		eng.OnShutdown(func() {
 			// Always release the pidfile last, just in case
 			utils.RemovePidFile(config.Pidfile)
@@ -700,17 +708,22 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 
 	// Check that the system is supported and we have sufficient privileges
 	// FIXME: return errors instead of calling Fatal
+	// docker只能linux上跑
 	if runtime.GOOS != "linux" {
 		log.Fatalf("The Docker daemon is only supported on linux")
 	}
+	// 只能root权限跑
 	if os.Geteuid() != 0 {
 		log.Fatalf("The Docker daemon needs to be run as root")
 	}
+	// linux amd64 内核版本大于等于3.8.0
 	if err := checkKernelAndArch(); err != nil {
 		log.Fatalf(err.Error())
 	}
 
 	// set up the TempDir to use a canonical path
+	// 配置工作路径，用于存放镜像，文件系统，临时文件等等，非常重要
+	// 在工作路径创建一个tmp目录，如果成功说明root正常，否则爆炸
 	tmp, err := utils.TempDir(config.Root)
 	if err != nil {
 		log.Fatalf("Unable to get the TempDir under %s: %s", config.Root, err)
@@ -740,28 +753,34 @@ func NewDaemonFromDirectory(config *Config, eng *engine.Engine) (*Daemon, error)
 		return nil, err
 	}
 
-	// Set the default driver
+	// Set the default driver 默认为空
 	graphdriver.DefaultDriver = config.GraphDriver
 
-	// Load storage driver
+	// Load storage driver config.GraphOptions默认为空
 	driver, err := graphdriver.New(config.Root, config.GraphOptions)
 	if err != nil {
 		return nil, err
 	}
+	// [debug] daemon.go:751 Using graph driver devicemapper
 	log.Debugf("Using graph driver %s", driver)
 
 	// As Docker on btrfs and SELinux are incompatible at present, error on both being enabled
+	// 适配btrfs以及selinux
 	if config.EnableSelinuxSupport && driver.String() == "btrfs" {
 		return nil, fmt.Errorf("SELinux is not supported with the BTRFS graph driver!")
 	}
-
+	// /var/lib/docker/containers 容器目录
 	daemonRepo := path.Join(config.Root, "containers")
-
+	// 容器目录不存在则自动创建
 	if err := os.MkdirAll(daemonRepo, 0700); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
 
 	// Migrate the container if it is aufs and aufs is enabled
+	// AUFS 是联合文件系统，意味着它在主机上使用多层目录存储，每一个目录在 AUFS 中都叫作分支，
+	// 而在 Docker 中则称之为层(layer)，但最终呈现给用户的则是一个普通单层的文件系统，
+	// 我们把多层以单一层的方式呈现出来的过程叫作联合挂载。
+	// 迁移aufs，会造成不兼容
 	if err = migrateIfAufs(driver, config.Root); err != nil {
 		return nil, err
 	}
@@ -1096,6 +1115,7 @@ func (daemon *Daemon) ImageGetCached(imgID string, config *runconfig.Config) (*i
 
 func checkKernelAndArch() error {
 	// Check for unsupported architectures
+	// 只支持amd64位
 	if runtime.GOARCH != "amd64" {
 		return fmt.Errorf("The Docker runtime currently only supports amd64 (not %s). This will change in the future. Aborting.", runtime.GOARCH)
 	}
@@ -1109,6 +1129,7 @@ func checkKernelAndArch() error {
 	if k, err := kernel.GetKernelVersion(); err != nil {
 		log.Infof("WARNING: %s", err)
 	} else {
+		// 只能3.8之后的内核
 		if kernel.CompareKernelVersion(k, &kernel.KernelVersionInfo{Kernel: 3, Major: 8, Minor: 0}) < 0 {
 			if os.Getenv("DOCKER_NOWARN_KERNEL_VERSION") == "" {
 				log.Infof("WARNING: You are running linux kernel version %s, which might be unstable running docker. Please upgrade your kernel to 3.8.0.", k.String())
